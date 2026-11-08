@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>WolfOS 🐺</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐺</text></svg>">
+<style>
+:root{--acc:#7b5cff;--glass:rgba(255,255,255,.72);--txt:#1d1b26;--muted:#6b6880;--win:#ffffff;--bar:rgba(246,245,250,.92);--line:rgba(0,0,0,.08)}
+body.dark{--glass:rgba(30,28,40,.72);--txt:#f2f0fa;--muted:#a19db8;--win:#1f1d2a;--bar:rgba(40,37,54,.95);--line:rgba(255,255,255,.08)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--txt);-webkit-user-select:none;user-select:none}
+input,textarea,button{font:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+#wall{position:fixed;inset:0;background:var(--wall,linear-gradient(135deg,#6a5cff,#ff6fb5 55%,#ffb86b));background-size:cover;transition:background .5s}
+/* ---------- login ---------- */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);background:rgba(0,0,0,.15)}
+.lcard{width:min(380px,92vw);text-align:center;color:#fff}
+.lcard .ava{font-size:72px;width:120px;height:120px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.25);box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.lcard h1{margin:6px 0 2px;font-size:30px;letter-spacing:.5px}
+.lcard p{margin:0 0 16px;opacity:.85}
+.lin{width:100%;padding:12px 16px;border-radius:14px;border:none;background:rgba(255,255,255,.3);color:#fff;font-size:17px;outline:none;text-align:center;margin:6px 0}
+.lin::placeholder{color:rgba(255,255,255,.75)}
+.emo{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:8px 0 12px}
+.emo button{font-size:24px;border:none;background:rgba(255,255,255,.18);border-radius:12px;width:42px;height:42px}
+.emo button.on{background:#fff;transform:scale(1.1)}
+.lbtn{width:100%;padding:12px;border:none;border-radius:14px;font-size:17px;font-weight:700;background:#fff;color:#4b36d6;margin-top:8px}
+.lrow{display:flex;gap:8px}
+.lrow .lin{flex:1}
+.lrow .lbtn{width:auto;padding:12px 18px}
+/* ---------- menubar ---------- */
+#menubar{position:fixed;top:0;left:0;right:0;height:30px;display:flex;align-items:center;gap:16px;padding:0 14px;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font-size:14px;z-index:30}
+#menubar b{font-weight:700}
+#menubar .sp{flex:1}
+.mchip{padding:2px 8px;border-radius:7px}
+.mchip:hover{background:rgba(127,127,127,.18)}
+#wolfMenu{position:fixed;top:32px;left:8px;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:10px;padding:6px;z-index:40;min-width:220px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:14px}
+#wolfMenu div{padding:6px 10px;border-radius:6px}
+#wolfMenu div:hover{background:var(--acc);color:#fff}
+#wolfMenu hr{border:none;border-top:1px solid var(--line);margin:4px 0}
+/* ---------- dock ---------- */
+#dock{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:6px;padding:6px 8px;border-radius:20px;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.2);max-width:98vw;overflow-x:auto}
+.dk{position:relative;width:52px;height:52px;border-radius:13px;border:none;font-size:30px;display:flex;align-items:center;justify-content:center;transition:transform .15s,margin .15s;flex:0 0 auto;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.dk:hover{transform:translateY(-10px) scale(1.25);margin:0 8px}
+.dk .tip{position:absolute;bottom:72px;left:50%;transform:translateX(-50%);background:var(--glass);padding:3px 9px;border-radius:7px;font-size:12px;white-space:nowrap;opacity:0;pointer-events:none;color:var(--txt)}
+.dk:hover .tip{opacity:1}
+.dk.open::after{content:"";position:absolute;bottom:-5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--txt)}
+.dk .badge{position:absolute;top:-4px;right:-4px;background:#ff3b30;color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.sep{width:1px;height:44px;background:var(--line);margin:0 2px}
+/* ---------- windows ---------- */
+#desk{position:fixed;top:30px;left:0;right:0;bottom:0}
+.win{position:absolute;background:var(--win);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35),0 0 0 1px var(--line);display:flex;flex-direction:column;overflow:hidden;min-width:260px;min-height:180px;animation:pop .18s ease-out}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.win.closing{animation:shut .15s ease-in forwards}
+@keyframes shut{to{transform:scale(.85);opacity:0}}
+.tbar{height:36px;display:flex;align-items:center;padding:0 12px;gap:8px;background:var(--bar);border-bottom:1px solid var(--line);cursor:grab;flex:0 0 auto}
+.lights{display:flex;gap:8px}
+.lights i{width:13px;height:13px;border-radius:50%;display:block;cursor:pointer}
+.lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+.win:not(.focus) .lights i{background:#c9c7d1}
+.tbar .tt{flex:1;text-align:center;font-weight:600;font-size:14px;margin-right:50px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wbody{flex:1;overflow:auto;position:relative;user-select:text;-webkit-user-select:text}
+.rz{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize}
+.win.max{left:0!important;top:0!important;width:100%!important;height:calc(100% - 80px)!important;border-radius:0}
+/* ---------- cursors ---------- */
+#curs{position:fixed;inset:0;pointer-events:none;z-index:45}
+.rc{position:absolute;transition:left .09s linear,top .09s linear;font-size:24px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.rc span{position:absolute;left:24px;top:22px;font-size:11px;font-weight:700;color:#fff;padding:2px 7px;border-radius:8px;white-space:nowrap}
+/* ---------- notif ---------- */
+#notifs{position:fixed;top:38px;right:10px;z-index:60;display:flex;flex-direction:column;gap:8px;width:min(330px,90vw)}
+.nt{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:slide .25s ease-out;font-size:14px}
+@keyframes slide{from{transform:translateX(120%)}}
+.nt .ic{font-size:26px}
+.nt b{display:block;font-size:13px}
+/* ---------- apps ---------- */
+.pad{padding:12px}
+.chat{display:flex;flex-direction:column;height:100%}
+.msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:6px}
+.msg{max-width:78%;padding:7px 11px;border-radius:16px;background:rgba(127,127,127,.15);align-self:flex-start;word-wrap:break-word}
+.msg.me{background:var(--acc);color:#fff;align-self:flex-end}
+.msg small{display:block;font-size:11px;opacity:.7;font-weight:600}
+.msg.sys{align-self:center;background:none;color:var(--muted);font-size:12px}
+.cin{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+.cin input{flex:1;border:1px solid var(--line);background:rgba(127,127,127,.08);border-radius:18px;padding:8px 12px;outline:none}
+.qe{display:flex;gap:4px;padding:4px 8px 0;flex-wrap:wrap}
+.qe button{border:none;background:none;font-size:20px;padding:2px}
+.btn{border:none;background:var(--acc);color:#fff;border-radius:10px;padding:8px 14px;font-weight:600}
+.btn.g{background:rgba(127,127,127,.18);color:var(--txt)}
+/* tic tac */
+.ttt{display:grid;grid-template-columns:repeat(15,1fr);gap:2px;background:var(--line);padding:2px;border-radius:8px;aspect-ratio:1;max-width:100%}
+.ttt div{background:var(--win);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:clamp(10px,2.3vw,20px);cursor:pointer;aspect-ratio:1}
+.ttt div.X{color:#ff3b6b}.ttt div.O{color:#2f80ff}
+.ttt div.w{background:#ffe9a8}
+.tinfo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-weight:600}
+/* piano */
+.piano{display:flex;position:relative;height:180px;margin-top:10px;user-select:none}
+.wk{flex:1;background:#fff;border:1px solid #bbb;border-radius:0 0 8px 8px;position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;font-size:11px;color:#999;transition:background .1s}
+.bk{position:absolute;width:6%;height:60%;background:#222;border-radius:0 0 6px 6px;z-index:2;transition:background .1s}
+.wk.hit,.bk.hit{background:var(--hc,#7b5cff)!important}
+.plog{font-size:13px;color:var(--muted);min-height:20px}
+/* notes */
+.board{position:relative;width:100%;height:100%;min-height:300px;background:repeating-linear-gradient(0deg,transparent 0 23px,var(--line) 23px 24px)}
+.stk{position:absolute;width:160px;min-height:140px;padding:8px;border-radius:4px;box-shadow:0 6px 16px rgba(0,0,0,.2);display:flex;flex-direction:column;color:#2b2140}
+.stk .sh{display:flex;justify-content:space-between;font-size:11px;font-weight:700;cursor:grab;opacity:.7;margin-bottom:4px}
+.stk textarea{flex:1;border:none;background:transparent;resize:none;outline:none;font-size:15px;min-height:100px;font-family:"Marker Felt","Comic Sans MS",cursive;color:#2b2140}
+/* terminal */
+.term{background:#14121c;color:#9dff9d;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;height:100%;padding:10px;overflow:auto;white-space:pre-wrap}
+.term input{background:none;border:none;outline:none;color:#9dff9d;font-family:inherit;font-size:inherit;width:70%}
+/* weather */
+.wx{text-align:center;padding:16px;background:linear-gradient(180deg,#4facfe,#00c6fb);color:#fff;height:100%}
+.wx .big{font-size:64px;font-weight:200;margin:4px 0}
+.wx .days{display:flex;justify-content:space-around;margin-top:16px;background:rgba(255,255,255,.2);border-radius:14px;padding:10px}
+/* calc */
+.calc{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;background:#1c1c1e;height:100%}
+.calc .scr{grid-column:1/-1;color:#fff;font-size:40px;text-align:right;padding:10px 6px;font-weight:300;overflow:hidden}
+.calc button{border:none;border-radius:50%;aspect-ratio:1;font-size:22px;background:#333;color:#fff}
+.calc button.o{background:#ff9f0a}.calc button.f{background:#a5a5a5;color:#000}
+.calc button.z{grid-column:span 2;aspect-ratio:auto;border-radius:40px}
+/* settings */
+.walls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 14px}
+.walls button{height:60px;border-radius:10px;border:3px solid transparent}
+.walls button.on{border-color:var(--acc)}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.ppl{display:flex;flex-direction:column;gap:6px}
+.ppl div{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:rgba(127,127,127,.1)}
+@media (max-width:700px){.dk{width:44px;height:44px;font-size:24px}.dk:hover{transform:none;margin:0}#menubar .hm{display:none}}
+</style>
+</head>
+<body>
+<div id="wall"></div>
+
+<div id="login">
+ <div class="lcard">
+  <div class="ava" id="lAva">🐺</div>
+  <h1>WolfOS</h1>
+  <p>Plocha pro tebe a kámoše 💻</p>
+  <input class="lin" id="lName" maxlength="16" placeholder="Tvoje jméno">
+  <div class="emo" id="lEmo"></div>
+  <button class="lbtn" id="lNew">➕ Nová plocha</button>
+  <div class="lrow"><input class="lin" id="lCode" maxlength="5" placeholder="KÓD plochy" style="text-transform:uppercase"><button class="lbtn" id="lJoin">Připojit ➜</button></div>
+  <p id="lErr" style="margin-top:10px;font-size:13px"></p>
+ </div>
+</div>
+
+<div id="menubar" class="hidden">
+ <span class="mchip" id="wolfBtn" style="font-size:16px">🐺</span>
+ <b id="mApp">Finder</b>
+ <span class="mchip hm" id="mOpen">Appky</span>
+ <span class="sp"></span>
+ <span class="mchip" id="mRoom">👥</span>
+ <span class="mchip hm" id="mWx"></span>
+ <span id="mClock"></span>
+</div>
+<div id="wolfMenu" class="hidden">
+ <div data-m="about">🐺 O WolfOS</div>
+ <div data-m="invite">🔗 Pozvat kámoše</div>
+ <div data-m="settings">⚙️ Nastavení…</div>
+ <hr>
+ <div data-m="tidy">🪟 Zavřít všechna okna</div>
+ <div data-m="logout">🚪 Odhlásit se</div>
+</div>
+<div id="desk"></div>
+<div id="dock" class="hidden"></div>
+<div id="curs"></div>
+<div id="notifs"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getDatabase, ref, set, push, remove, update, onValue, onChildAdded, onChildRemoved, onChildChanged, onDisconnect, get, serverTimestamp, runTransaction, query, limitToLast } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+const fbApp = initializeApp({
+  apiKey: "AIzaSyBovG00qfDWUBcS9pJlS_FwOH4etF9Sv0Y",
+  authDomain: "flex-bubble.firebaseapp.com",
+  databaseURL: "https://flex-bubble-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "flex-bubble",
+  storageBucket: "flex-bubble.firebasestorage.app",
+  messagingSenderId: "171220277752",
+  appId: "1:171220277752:web:d5d68647bf1759db58de0d"
+});
+const auth = getAuth(fbApp), db = getDatabase(fbApp);
+const ROOT = 'wolfos/rooms';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const now = () => Date.now();
+const isMobile = () => innerWidth < 700;
+
+/* ================= stav ================= */
+let me = { name: '', emoji: '🐺', color: '#7b5cff', wall: 0, dark: false };
+try { Object.assign(me, JSON.parse(localStorage.getItem('wo_me') || '{}')); } catch (e) { }
+const saveMe = () => { try { localStorage.setItem('wo_me', JSON.stringify(me)); } catch (e) { } };
+let uid = null, room = null, joinT = 0, users = {}, unsub = [];
+const COLORS = ['#7b5cff', '#ff3b6b', '#ff9f0a', '#34c759', '#2f80ff', '#af52de', '#00c7be', '#ff2d55'];
+if (!me.color || !COLORS.includes(me.color)) me.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+const WALLS = [
+  'linear-gradient(135deg,#6a5cff,#ff6fb5 55%,#ffb86b)',
+  'linear-gradient(160deg,#0f2027,#203a43 50%,#2c5364)',
+  'radial-gradient(circle at 30% 20%,#ffd86b,#ff6b6b 45%,#5f2c82)',
+  'linear-gradient(135deg,#43e97b,#38f9d7)',
+  'linear-gradient(200deg,#1a1a2e,#16213e 40%,#e94560)',
+  'radial-gradient(circle at 70% 80%,#00c6fb,#005bea 50%,#1b1464)',
+  'linear-gradient(120deg,#f6d365,#fda085)',
+  'linear-gradient(135deg,#232526,#414345)',
+  'conic-gradient(from 200deg at 50% 60%,#ff6fb5,#7b5cff,#00c6fb,#43e97b,#ffd86b,#ff6fb5)'
+];
+function applyLook() {
+  document.getElementById('wall').style.setProperty('--wall', WALLS[me.wall] || WALLS[0]);
+  document.body.classList.toggle('dark', !!me.dark);
+  document.documentElement.style.setProperty('--acc', me.color);
+}
+applyLook();
+
+/* ================= login ================= */
+const EMOJIS = ['🐺', '🦊', '🐱', '🐶', '🐼', '🦁', '🐸', '🐵', '🤖', '👾', '😎', '🦄', '🐉', '👻', '🐧', '🦈'];
+$('#lEmo').innerHTML = EMOJIS.map(e => `<button data-e="${e}">${e}</button>`).join('');
+function paintLogin() { $('#lAva').textContent = me.emoji; document.querySelectorAll('#lEmo button').forEach(b => b.classList.toggle('on', b.dataset.e === me.emoji)); }
+$('#lEmo').onclick = e => { const b = e.target.closest('button'); if (!b) return; me.emoji = b.dataset.e; paintLogin(); };
+$('#lName').value = me.name || '';
+const hashCode = location.hash.replace('#', '').toUpperCase().slice(0, 5);
+if (hashCode) $('#lCode').value = hashCode;
+paintLogin();
+const genCode = () => Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 24)]).join('');
+function startLogin(code) {
+  const n = $('#lName').value.trim(); if (!n) { $('#lErr').textContent = 'Napiš svoje jméno 🙂'; $('#lName').focus(); return; }
+  me.name = n.slice(0, 16); saveMe();
+  if (!uid) { $('#lErr').textContent = 'Připojuju se k serveru… ⏳'; setTimeout(() => startLogin(code), 700); return; }
+  enterRoom(code);
+}
+$('#lNew').onclick = () => startLogin(genCode());
+$('#lJoin').onclick = () => { const c = $('#lCode').value.trim().toUpperCase(); if (c.length < 3) { $('#lErr').textContent = 'Zadej kód plochy 🔑'; return; } startLogin(c); };
+$('#lCode').onkeydown = e => { if (e.key === 'Enter') $('#lJoin').click(); };
+$('#lName').onkeydown = e => { if (e.key === 'Enter') ($('#lCode').value ? $('#lJoin') : $('#lNew')).click(); };
+
+let authFail = false;
+onAuthStateChanged(auth, u => { if (u) { uid = u.uid; $('#lErr').textContent = ''; } });
+signInAnonymously(auth).catch(err => { authFail = true; $('#lErr').textContent = 'Server nejde 😕 (' + err.code + ')'; });
+
+/* ================= místnost ================= */
+const R = p => ref(db, `${ROOT}/${room}/${p}`);
+function enterRoom(code) {
+  room = code; joinT = now(); location.hash = code;
+  $('#login').classList.add('hidden'); ['#menubar', '#dock'].forEach(s => $(s).classList.remove('hidden'));
+  const meRef = R(`users/${uid}`);
+  set(meRef, { name: me.name, emoji: me.emoji, color: me.color, x: -1, y: -1, app: '', t: serverTimestamp() });
+  onDisconnect(meRef).remove();
+  unsub.push(onValue(R('users'), s => { users = s.val() || {}; renderPeople(); renderCursors(); }));
+  sysMsg(`${me.emoji} ${me.name} se připojil/a 👋`);
+  buildDock();
+  notify('🐺', 'Vítej ve WolfOS!', `Plocha ${code} – pošli kód kámošům.`);
+  openApp(isMobile() ? 'chat' : 'welcome');
+  startChatListener();
+}
+function leaveRoom() {
+  if (room && uid) remove(R(`users/${uid}`));
+  unsub.forEach(f => { try { f(); } catch (e) { } }); unsub = [];
+  location.hash = ''; location.reload();
+}
+function sysMsg(t) { if (room) push(R('chat'), { sys: 1, t: t, at: serverTimestamp() }); }
+
+/* ---------- kurzory ---------- */
+let lastSend = 0, pend = null;
+window.addEventListener('pointermove', e => {
+  if (!room) return;
+  const x = e.clientX / innerWidth, y = e.clientY / innerHeight;
+  const go = () => { lastSend = now(); update(R(`users/${uid}`), { x: +x.toFixed(4), y: +y.toFixed(4) }); };
+  clearTimeout(pend); if (now() - lastSend > 70) go(); else pend = setTimeout(go, 70);
+});
+function renderCursors() {
+  const box = $('#curs'); const seen = new Set();
+  for (const [id, u] of Object.entries(users)) {
+    if (id === uid || u.x < 0) continue; seen.add(id);
+    let el = box.querySelector(`[data-u="${id}"]`);
+    if (!el) { el = document.createElement('div'); el.className = 'rc'; el.dataset.u = id; box.appendChild(el); }
+    el.innerHTML = `${esc(u.emoji)}<span style="background:${esc(u.color)}">${esc(u.name)}${u.app ? ' · ' + esc((APPS[u.app] || {}).n || '') : ''}</span>`;
+    el.style.left = (u.x * innerWidth) + 'px'; el.style.top = (u.y * innerHeight) + 'px';
+  }
+  box.querySelectorAll('.rc').forEach(el => { if (!seen.has(el.dataset.u)) el.remove(); });
+  $('#mRoom').textContent = `👥 ${Object.keys(users).length} · ${room}`;
+}
+
+/* ---------- notifikace + zvuk ---------- */
+let actx = null;
+function beep(f = 880, d = .12, type = 'sine', vol = .15) {
+  try { actx ||= new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+  o.type = type; o.frequency.value = f; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + d + .05);
+}
+function notify(ic, title, text, onclick) {
+  const n = document.createElement('div'); n.className = 'nt';
+  n.innerHTML = `<span class="ic">${esc(ic)}</span><div><b>${esc(title)}</b>${esc(text)}</div>`;
+  if (onclick) n.onclick = () => { onclick(); n.remove(); };
+  $('#notifs').appendChild(n); setTimeout(() => n.remove(), 4500);
+  while ($('#notifs').children.length > 4) $('#notifs').firstChild.remove();
+}
+
+/* ---------- hodiny + menu ---------- */
+function tick() { const d = new Date(); $('#mClock').textContent = d.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' }) + '  ' + d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }); }
+setInterval(tick, 5000); tick();
+$('#wolfBtn').onclick = e => { e.stopPropagation(); $('#wolfMenu').classList.toggle('hidden'); };
+document.addEventListener('click', () => $('#wolfMenu').classList.add('hidden'));
+$('#wolfMenu').onclick = e => {
+  const m = e.target.dataset.m; if (!m) return;
+  if (m === 'about') openApp('welcome'); if (m === 'settings') openApp('settings');
+  if (m === 'invite') invite(); if (m === 'tidy') Object.keys(wins).forEach(closeWin); if (m === 'logout') leaveRoom();
+};
+$('#mRoom').onclick = () => openApp('people');
+$('#mOpen').onclick = () => openApp('launch');
+function invite() {
+  const url = location.origin + location.pathname + '#' + room;
+  if (navigator.share) navigator.share({ title: 'WolfOS', text: `Pojď na moji plochu ve WolfOS! Kód: ${room} 🐺`, url }).catch(() => { });
+  else navigator.clipboard?.writeText(url).then(() => notify('🔗', 'Odkaz zkopírován', url));
+}
+
+/* ================= okna ================= */
+const wins = {}; let zTop = 10, badges = {};
+function buildDock() {
+  const order = ['flex', 'chat', 'ttt', 'piano', 'notes', 'art', 'term', 'weather', 'calc', 'people', 'settings'];
+  $('#dock').innerHTML = `<button class="dk" data-a="launch" style="background:linear-gradient(135deg,#eee,#bbb)">🐺<span class="tip">Appky</span></button><span class="sep"></span>` +
+    order.map(k => `<button class="dk" data-a="${k}" style="background:${APPS[k].bg}">${APPS[k].i}<span class="tip">${APPS[k].n}</span></button>`).join('');
+  $('#dock').onclick = e => { const b = e.target.closest('.dk'); if (b) openApp(b.dataset.a); };
+}
+function refreshDock() {
+  document.querySelectorAll('.dk').forEach(b => {
+    b.classList.toggle('open', !!wins[b.dataset.a]);
+    let bd = b.querySelector('.badge'); const n = badges[b.dataset.a] || 0;
+    if (n && !bd) { bd = document.createElement('span'); bd.className = 'badge'; b.appendChild(bd); }
+    if (bd) { if (n) bd.textContent = n > 9 ? '9+' : n; else bd.remove(); }
+  });
+}
+function openApp(k) {
+  const A = APPS[k]; if (!A) return;
+  if (wins[k]) { wins[k].el.classList.remove('hidden'); focusWin(k); return; }
+  const el = document.createElement('div'); el.className = 'win';
+  const W = Math.min(A.w || 420, innerWidth - 16), H = Math.min(A.h || 420, innerHeight - 130);
+  const cnt = Object.keys(wins).length;
+  el.style.width = W + 'px'; el.style.height = H + 'px';
+  el.style.left = Math.max(8, (innerWidth - W) / 2 + (cnt % 5) * 26 - 50) + 'px'; el.style.top = Math.max(6, 40 + (cnt % 5) * 26) + 'px';
+  el.innerHTML = `<div class="tbar"><div class="lights"><i data-w="close"></i><i data-w="min"></i><i data-w="max"></i></div><div class="tt">${A.i} ${A.n}</div></div><div class="wbody"></div><div class="rz"></div>`;
+  $('#desk').appendChild(el);
+  if (isMobile()) el.classList.add('max');
+  wins[k] = { el, body: el.querySelector('.wbody'), cleanup: [] };
+  el.addEventListener('pointerdown', () => focusWin(k));
+  el.querySelector('.lights').onclick = e => { const w = e.target.dataset.w; if (w === 'close') closeWin(k); if (w === 'min') { el.classList.add('hidden'); refreshDock(); } if (w === 'max') el.classList.toggle('max'); };
+  dragify(el, el.querySelector('.tbar'), el.querySelector('.rz'));
+  el.querySelector('.tbar').ondblclick = () => el.classList.toggle('max');
+  A.open(wins[k].body, wins[k]);
+  focusWin(k); refreshDock();
+}
+function closeWin(k) {
+  const w = wins[k]; if (!w) return; delete wins[k];
+  w.cleanup.forEach(f => { try { f(); } catch (e) { } });
+  w.el.classList.add('closing'); setTimeout(() => w.el.remove(), 150); refreshDock();
+  if (room) update(R(`users/${uid}`), { app: '' });
+}
+function focusWin(k) {
+  for (const [kk, w] of Object.entries(wins)) w.el.classList.toggle('focus', kk === k);
+  const w = wins[k]; if (!w) return; w.el.style.zIndex = ++zTop; $('#mApp').textContent = APPS[k].n;
+  if (badges[k]) { badges[k] = 0; refreshDock(); }
+  if (room && users[uid]?.app !== k) update(R(`users/${uid}`), { app: k });
+}
+function dragify(el, handle, rz) {
+  handle.addEventListener('pointerdown', e => {
+    if (e.target.closest('.lights') || el.classList.contains('max')) return;
+    const sx = e.clientX - el.offsetLeft, sy = e.clientY - el.offsetTop; handle.setPointerCapture(e.pointerId);
+    const mv = ev => { el.style.left = Math.min(innerWidth - 60, Math.max(-el.offsetWidth + 80, ev.clientX - sx)) + 'px'; el.style.top = Math.min(innerHeight - 90, Math.max(0, ev.clientY - sy)) + 'px'; };
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+  rz.addEventListener('pointerdown', e => {
+    e.stopPropagation(); const sw = el.offsetWidth, sh = el.offsetHeight, sx = e.clientX, sy = e.clientY; rz.setPointerCapture(e.pointerId);
+    const mv = ev => { el.style.width = Math.max(260, sw + ev.clientX - sx) + 'px'; el.style.height = Math.max(180, sh + ev.clientY - sy) + 'px'; };
+    const up = () => { rz.removeEventListener('pointermove', mv); rz.removeEventListener('pointerup', up); };
+    rz.addEventListener('pointermove', mv); rz.addEventListener('pointerup', up);
+  });
+}
+
+/* ================= APPKY ================= */
+const APPS = {};
+
+/* ---- Vítej / launcher ---- */
+APPS.welcome = { n: 'Vítej', i: '🐺', bg: '#ddd', w: 440, h: 380, open(b) {
+  b.innerHTML = `<div class="pad" style="text-align:center"><div style="font-size:64px">${esc(me.emoji)}</div><h2 style="margin:4px 0">Ahoj ${esc(me.name)}! 👋</h2>
+  <p style="color:var(--muted)">Jsi na ploše <b>${esc(room)}</b>. Všichni s tímhle kódem vidí tvůj kurzor, chat, piškvorky, nálepky i piano. 🎉</p>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px"><button class="btn" id="wInv">🔗 Pozvat kámoše</button><button class="btn g" id="wChat">💬 Chat</button><button class="btn g" id="wTtt">❌ Piškvorky</button></div>
+  <p style="font-size:12px;color:var(--muted);margin-top:18px">Okna chytni za horní lištu, roztáhni za pravý dolní roh. 🟢 = celá obrazovka.</p></div>`;
+  b.querySelector('#wInv').onclick = invite; b.querySelector('#wChat').onclick = () => openApp('chat'); b.querySelector('#wTtt').onclick = () => openApp('ttt');
+} };
+APPS.launch = { n: 'Appky', i: '🚀', bg: '#ddd', w: 460, h: 360, open(b) {
+  const list = ['flex', 'chat', 'ttt', 'piano', 'notes', 'art', 'term', 'weather', 'calc', 'people', 'settings', 'welcome'];
+  b.innerHTML = `<div class="pad" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:14px;text-align:center">${list.map(k => `<div data-a="${k}" style="cursor:pointer"><div style="width:62px;height:62px;margin:0 auto;border-radius:16px;background:${APPS[k].bg};display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 3px 8px rgba(0,0,0,.2)">${APPS[k].i}</div><div style="font-size:12px;margin-top:5px">${APPS[k].n}</div></div>`).join('')}</div>`;
+  b.onclick = e => { const d = e.target.closest('[data-a]'); if (d) { openApp(d.dataset.a); closeWin('launch'); } };
+} };
+
+/* ---- Chat ---- */
+let chatBox = null; const chatCache = [];
+function renderMsg(m) {
+  if (!chatBox) return;
+  const d = document.createElement('div');
+  if (m.sys) { d.className = 'msg sys'; d.textContent = m.t; }
+  else { d.className = 'msg' + (m.u === uid ? ' me' : ''); d.innerHTML = (m.u === uid ? '' : `<small>${esc(m.e)} ${esc(m.n)}</small>`) + esc(m.t); }
+  chatBox.appendChild(d); chatBox.scrollTop = chatBox.scrollHeight;
+}
+function startChatListener() {
+  unsub.push(onChildAdded(query(R('chat'), limitToLast(80)), s => {
+    const m = s.val(); chatCache.push(m); if (chatCache.length > 120) chatCache.shift(); renderMsg(m);
+    const fresh = !m.at || m.at > joinT - 2000;
+    if (!m.sys && m.u !== uid && fresh) {
+      beep(1046, .08); setTimeout(() => beep(1318, .1), 90);
+      if (!wins.chat || !wins.chat.el.classList.contains('focus')) { badges.chat = (badges.chat || 0) + 1; refreshDock(); notify(m.e || '💬', m.n, m.t, () => openApp('chat')); }
+    }
+  }));
+}
+function sendChat(t) { t = String(t).trim().slice(0, 300); if (!t) return; push(R('chat'), { u: uid, n: me.name, e: me.emoji, t, at: serverTimestamp() }); }
+APPS.chat = { n: 'Chat', i: '💬', bg: 'linear-gradient(135deg,#5ef08a,#1fbf55)', w: 380, h: 480, open(b, w) {
+  b.innerHTML = `<div class="chat"><div class="msgs"></div><div class="qe">${['😂', '👍', '🔥', '❤️', '😮', '🎉', '🐺', '💀'].map(e => `<button>${e}</button>`).join('')}</div><div class="cin"><input placeholder="Napiš zprávu…" maxlength="300"><button class="btn">➤</button></div></div>`;
+  chatBox = b.querySelector('.msgs'); chatCache.forEach(renderMsg);
+  const inp = b.querySelector('input'); const go = () => { sendChat(inp.value); inp.value = ''; inp.focus(); };
+  b.querySelector('.cin .btn').onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go(); };
+  b.querySelector('.qe').onclick = e => { if (e.target.tagName === 'BUTTON') sendChat(e.target.textContent); };
+  w.cleanup.push(() => chatBox = null);
+  badges.chat = 0;
+} };
+
+/* ---- Piškvorky ---- */
+const N = 15;
+function fiveWin(cells, r, c, s) {
+  for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+    const line = [[r, c]];
+    for (const sg of [1, -1]) { let rr = r + dr * sg, cc = c + dc * sg; while (cells[`${rr}_${cc}`] === s) { line.push([rr, cc]); rr += dr * sg; cc += dc * sg; } }
+    if (line.length >= 5) return line.map(([a, b]) => `${a}_${b}`);
+  }
+  return null;
+}
+APPS.ttt = { n: 'Piškvorky', i: '❌', bg: 'linear-gradient(135deg,#ff8a8a,#ff3b6b)', w: 460, h: 560, open(b, w) {
+  b.innerHTML = `<div class="pad"><div class="tinfo" id="tI"></div><div class="ttt" id="tB">${Array.from({ length: N * N }, (_, i) => `<div data-k="${Math.floor(i / N)}_${i % N}"></div>`).join('')}</div>
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" id="tX">Hrát za ❌</button><button class="btn" id="tO" style="background:#2f80ff">Hrát za ⭕</button><button class="btn g" id="tR">🔄 Nová hra</button></div></div>`;
+  let G = {}; const tref = R('ttt');
+  const draw = () => {
+    const cells = G.cells || {}, win = new Set(G.win || []);
+    b.querySelectorAll('#tB div').forEach(d => { const v = cells[d.dataset.k] || ''; d.textContent = v === 'X' ? '✕' : v === 'O' ? '◯' : ''; d.className = v + (win.has(d.dataset.k) ? ' w' : ''); });
+    const px = G.px ? `${esc(G.px.e)} ${esc(G.px.n)}` : '<i>volno</i>', po = G.po ? `${esc(G.po.e)} ${esc(G.po.n)}` : '<i>volno</i>';
+    const turn = G.turn || 'X';
+    b.querySelector('#tI').innerHTML = G.winner ? `🏆 Vyhrál ${G.winner === 'X' ? '❌ ' + px : '⭕ ' + po}!` : `❌ ${px} &nbsp;vs&nbsp; ⭕ ${po} &nbsp;·&nbsp; Na tahu: ${turn === 'X' ? '❌' : '⭕'}`;
+  };
+  w.cleanup.push(onValue(tref, s => { const old = G; G = s.val() || {}; draw(); if (G.winner && !old.winner && G.last?.u !== undefined) { beep(523, .15); setTimeout(() => beep(784, .25), 150); } }));
+  const seat = side => runTransaction(tref, g => { g = g || {}; const k = side === 'X' ? 'px' : 'po'; if (!g[k] || g[k].u === uid) { g[k] = { u: uid, n: me.name, e: me.emoji }; const o = side === 'X' ? 'po' : 'px'; if (g[o]?.u === uid) delete g[o]; } return g; });
+  b.querySelector('#tX').onclick = () => seat('X'); b.querySelector('#tO').onclick = () => seat('O');
+  b.querySelector('#tR').onclick = () => runTransaction(tref, g => { g = g || {}; return { px: g.px || null, po: g.po || null, turn: 'X', cells: {} }; }).then(() => sysMsg(`❌⭕ ${me.name} spustil/a novou hru piškvorek`));
+  b.querySelector('#tB').onclick = e => {
+    const k = e.target.dataset.k; if (!k) return;
+    runTransaction(tref, g => {
+      g = g || {}; g.cells = g.cells || {}; const turn = g.turn || 'X';
+      if (g.winner || g.cells[k]) return;
+      const seatK = turn === 'X' ? 'px' : 'po';
+      if (!g[seatK]) g[seatK] = { u: uid, n: me.name, e: me.emoji };
+      if (g[seatK].u !== uid) return;
+      g.cells[k] = turn; const [r, c] = k.split('_').map(Number);
+      const wl = fiveWin(g.cells, r, c, turn); if (wl) { g.winner = turn; g.win = wl; }
+      g.turn = turn === 'X' ? 'O' : 'X'; g.last = { u: uid, k }; return g;
+    }).then(res => { if (res.committed) beep(660, .05, 'square', .05); else notify('⏳', 'Teď nehraješ', 'Počkej na svůj tah nebo si sedni za ❌/⭕'); });
+  };
+} };
+
+/* ---- Piano ---- */
+const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'H'];
+const KEYS = 'awsedftgzhujkolpřů';
+function playNote(midi, inst = 'triangle') {
+  try { actx ||= new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const f = 440 * Math.pow(2, (midi - 69) / 12), t = actx.currentTime;
+  [1, 2].forEach((m, i) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = i ? 'sine' : inst; o.frequency.value = f * m; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(i ? .05 : .22, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 1.1); o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 1.2); });
+}
+APPS.piano = { n: 'Piano', i: '🎹', bg: 'linear-gradient(135deg,#444,#111)', w: 620, h: 340, open(b, w) {
+  const start = 60, cnt = 18; let wh = '', bl = '', wi = 0; const whiteN = [...Array(cnt).keys()].filter(i => !NOTES[(start + i) % 12].includes('#')).length;
+  for (let i = 0; i < cnt; i++) { const m = start + i, nm = NOTES[m % 12]; if (nm.includes('#')) bl += `<div class="bk" data-m="${m}" style="left:${(wi / whiteN * 100) - 3}%"></div>`; else { wh += `<div class="wk" data-m="${m}">${nm}${KEYS[i] ? '<br>' + KEYS[i].toUpperCase() : ''}</div>`; wi++; } }
+  b.innerHTML = `<div class="pad"><div style="display:flex;justify-content:space-between;align-items:center"><b>🎹 Hrajte spolu – slyšíte se navzájem!</b><select id="pI" style="border-radius:8px;padding:4px"><option value="triangle">Klavír</option><option value="square">8-bit</option><option value="sawtooth">Synťák</option><option value="sine">Flétna</option></select></div><div class="piano">${wh}${bl}</div><div class="plog" id="pL"></div></div>`;
+  const hit = (m, col) => { const k = b.querySelector(`[data-m="${m}"]`); if (!k) return; k.style.setProperty('--hc', col); k.classList.add('hit'); setTimeout(() => k.classList.remove('hit'), 220); };
+  const press = m => { const inst = b.querySelector('#pI').value; playNote(m, inst); hit(m, me.color); push(R('piano'), { m, u: uid, c: me.color, e: me.emoji, n: me.name, i: inst, at: now() }); };
+  b.querySelector('.piano').addEventListener('pointerdown', e => { const k = e.target.closest('[data-m]'); if (k) { e.preventDefault(); press(+k.dataset.m); } });
+  const kd = e => { if (!wins.piano?.el.classList.contains('focus') || e.repeat || e.target.tagName === 'INPUT') return; const i = KEYS.indexOf(e.key.toLowerCase()); if (i >= 0) press(start + i); };
+  addEventListener('keydown', kd); w.cleanup.push(() => removeEventListener('keydown', kd));
+  const opened = now();
+  w.cleanup.push(onChildAdded(query(R('piano'), limitToLast(1)), s => { const v = s.val(); if (!v || v.u === uid || v.at < opened - 1500) return; playNote(v.m, v.i); hit(v.m, v.c); b.querySelector('#pL').textContent = `${v.e} ${v.n} hraje ${NOTES[v.m % 12]} 🎵`; }));
+} };
+
+/* ---- Nálepky ---- */
+const STK = ['#fff59d', '#ffcc80', '#f8bbd0', '#b3e5fc', '#c5e1a5', '#d1c4e9'];
+APPS.notes = { n: 'Nálepky', i: '📝', bg: 'linear-gradient(135deg,#fff59d,#ffca28)', w: 640, h: 480, open(b, w) {
+  b.innerHTML = `<div style="position:sticky;top:0;z-index:5;padding:8px;background:var(--bar);display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line)"><button class="btn" id="nA">➕ Nálepka</button><span style="font-size:12px;color:var(--muted)">Všichni je vidí a můžou psát 📌</span></div><div class="board" id="nB"></div>`;
+  const B = b.querySelector('#nB'), nref = R('notes');
+  b.querySelector('#nA').onclick = () => push(nref, { x: 20 + Math.random() * 200, y: 20 + Math.random() * 120, c: STK[Math.floor(Math.random() * STK.length)], t: '', by: me.emoji + ' ' + me.name });
+  const mk = (id, v) => {
+    let el = B.querySelector(`[data-id="${id}"]`);
+    if (!el) {
+      el = document.createElement('div'); el.className = 'stk'; el.dataset.id = id;
+      el.innerHTML = `<div class="sh"><span class="by"></span><span class="x" style="cursor:pointer">✖</span></div><textarea maxlength="300" placeholder="Napiš něco…"></textarea>`;
+      B.appendChild(el);
+      const ta = el.querySelector('textarea'); let tm;
+      ta.oninput = () => { clearTimeout(tm); tm = setTimeout(() => update(ref(db, `${ROOT}/${room}/notes/${id}`), { t: ta.value }), 250); };
+      el.querySelector('.x').onclick = () => remove(ref(db, `${ROOT}/${room}/notes/${id}`));
+      const h = el.querySelector('.sh');
+      h.addEventListener('pointerdown', e => {
+        if (e.target.classList.contains('x')) return; h.setPointerCapture(e.pointerId); const sx = e.clientX - el.offsetLeft, sy = e.clientY - el.offsetTop; el.style.zIndex = 3;
+        const mv = ev => { el.style.left = Math.max(0, ev.clientX - sx) + 'px'; el.style.top = Math.max(0, ev.clientY - sy) + 'px'; };
+        const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); el.style.zIndex = ''; update(ref(db, `${ROOT}/${room}/notes/${id}`), { x: el.offsetLeft, y: el.offsetTop }); };
+        h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+      });
+    }
+    el.style.left = v.x + 'px'; el.style.top = v.y + 'px'; el.style.background = v.c; el.querySelector('.by').textContent = v.by || '';
+    const ta = el.querySelector('textarea'); if (document.activeElement !== ta) ta.value = v.t || '';
+  };
+  w.cleanup.push(onChildAdded(nref, s => mk(s.key, s.val())), onChildChanged(nref, s => mk(s.key, s.val())), onChildRemoved(nref, s => B.querySelector(`[data-id="${s.key}"]`)?.remove()));
+} };
+
+/* ---- ArtParty ---- */
+APPS.art = { n: 'ArtParty', i: '🎨', bg: 'linear-gradient(135deg,#ff6fb5,#7b5cff)', w: 900, h: 620, open(b) {
+  b.style.overflow = 'hidden';
+  b.innerHTML = `<iframe src="https://lloydgarmadon9860-bit.github.io/artparty/#${encodeURIComponent(room)}" style="border:0;width:100%;height:100%" allow="clipboard-write"></iframe>`;
+} };
+
+/* ---- Flex ---- */
+APPS.flex = { n: 'Flex', i: '🫧', bg: 'linear-gradient(135deg,#00c6fb,#7b5cff)', w: 520, h: 640, open(b) {
+  b.style.overflow = 'hidden';
+  b.innerHTML = `<div style="display:flex;flex-direction:column;height:100%"><div style="padding:6px 8px;display:flex;gap:6px;align-items:center;background:var(--bar);border-bottom:1px solid var(--line);font-size:12px"><span style="flex:1;color:var(--muted)">Kdyby nešlo přihlášení, otevři Flex zvlášť 👉</span><a class="btn" style="text-decoration:none;padding:5px 10px" href="https://lloydgarmadon9860-bit.github.io/flex/" target="_blank" rel="noopener">↗️ Otevřít</a></div><iframe src="https://lloydgarmadon9860-bit.github.io/flex/" style="border:0;width:100%;flex:1" allow="clipboard-write"></iframe></div>`;
+} };
+
+/* ---- Terminál ---- */
+const JOKES = ['Proč programátoři nesnáší přírodu? Má moc bugů. 🐛', 'Co dělá vlk na počítači? Vyje na Wi-Fi. 🐺', 'Kolik programátorů je potřeba na výměnu žárovky? Žádný, to je hardware. 💡', 'Proč šel počítač k doktorovi? Měl virus. 🤒', 'Učitel: Kdo mi řekne, co je to Wi-Fi? Žák: Neviditelný kabel. 📶'];
+APPS.term = { n: 'Terminál', i: '⌨️', bg: 'linear-gradient(135deg,#333,#000)', w: 560, h: 380, open(b) {
+  b.innerHTML = `<div class="term"><div class="out">WolfOS terminal 🐺 – napiš <b>help</b>\n</div><div>${esc(me.name.toLowerCase())}@wolfos:~$ <input autofocus spellcheck="false"></div></div>`;
+  const T = b.querySelector('.term'), out = b.querySelector('.out'), inp = b.querySelector('input');
+  const say = s => { out.textContent += s + '\n'; T.scrollTop = T.scrollHeight; };
+  T.onclick = () => inp.focus(); setTimeout(() => inp.focus(), 50);
+  const hist = []; let hi = 0;
+  const cmds = {
+    help: () => 'Příkazy: help, whoami, users, date, joke, cowsay <text>, say <text>, open <appka>, roll, flip, neofetch, matrix, color, wall, clear',
+    whoami: () => `${me.emoji} ${me.name} (plocha ${room})`,
+    users: () => Object.values(users).map(u => `${u.emoji} ${u.name}${u.app ? ' – ' + ((APPS[u.app] || {}).n || '') : ''}`).join('\n'),
+    date: () => new Date().toLocaleString('cs-CZ'),
+    joke: () => JOKES[Math.floor(Math.random() * JOKES.length)],
+    cowsay: a => { const t = a || 'Bůůů!'; return ' ' + '_'.repeat(t.length + 2) + `\n< ${t} >\n ` + '-'.repeat(t.length + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||'; },
+    say: a => { if (!a) return 'Použití: say ahoj'; sendChat(a); return '📨 odesláno do chatu'; },
+    open: a => { const k = Object.keys(APPS).find(k => k === a || APPS[k].n.toLowerCase() === (a || '').toLowerCase()); if (!k) return 'Appky: ' + Object.keys(APPS).join(', '); openApp(k); return 'Otevírám ' + APPS[k].n; },
+    roll: () => '🎲 ' + (1 + Math.floor(Math.random() * 6)),
+    flip: () => Math.random() < .5 ? '🪙 Panna' : '🪙 Orel',
+    neofetch: () => `   /\\_/\\     ${me.name}@wolfos\n  ( o.o )    OS: WolfOS 1.0 🐺\n   > ^ <     Plocha: ${room}\n             Lidi online: ${Object.keys(users).length}\n             Okna: ${Object.keys(wins).length}\n             Shell: wolfsh`,
+    matrix: () => { let n = 0; const iv = setInterval(() => { say(Array.from({ length: 40 }, () => Math.random() < .5 ? String.fromCharCode(0x30A0 + Math.random() * 96) : ' ').join('')); if (++n > 25) clearInterval(iv); }, 60); return ''; },
+    color: () => { me.color = COLORS[(COLORS.indexOf(me.color) + 1) % COLORS.length]; saveMe(); applyLook(); update(R(`users/${uid}`), { color: me.color }); return '🎨 nová barva ' + me.color; },
+    wall: () => { me.wall = (me.wall + 1) % WALLS.length; saveMe(); applyLook(); return '🖼️ tapeta ' + (me.wall + 1); },
+    clear: () => { out.textContent = ''; return ''; },
+    sudo: () => 'Hezký pokus 😏 Tady je šéf jen Wolfe.',
+  };
+  inp.onkeydown = e => {
+    if (e.key === 'ArrowUp') { if (hist.length) { hi = Math.max(0, hi - 1); inp.value = hist[hi]; } return; }
+    if (e.key !== 'Enter') return;
+    const line = inp.value.trim(); inp.value = ''; if (!line) return; hist.push(line); hi = hist.length;
+    say(`$ ${line}`); const [c, ...rest] = line.split(' '); const f = cmds[c.toLowerCase()];
+    const r = f ? f(rest.join(' ')) : `wolfsh: příkaz nenalezen: ${c} 🤔 (zkus help)`; if (r) say(r);
+  };
+} };
+
+/* ---- Počasí ---- */
+const WMO = c => c === 0 ? ['☀️', 'Jasno'] : c <= 2 ? ['🌤️', 'Polojasno'] : c === 3 ? ['☁️', 'Zataženo'] : c <= 48 ? ['🌫️', 'Mlha'] : c <= 57 ? ['🌦️', 'Mrholení'] : c <= 67 ? ['🌧️', 'Déšť'] : c <= 77 ? ['❄️', 'Sníh'] : c <= 82 ? ['🌧️', 'Přeháňky'] : c <= 86 ? ['🌨️', 'Sněhové přeháňky'] : ['⛈️', 'Bouřka'];
+let wxCache = null;
+async function loadWx() {
+  if (wxCache && now() - wxCache.t < 600000) return wxCache.d;
+  const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=49.83&longitude=18.28&current=temperature_2m,weather_code,wind_speed_10m,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Europe%2FPrague&forecast_days=4');
+  const d = await r.json(); wxCache = { t: now(), d }; return d;
+}
+loadWx().then(d => { $('#mWx').textContent = `${WMO(d.current.weather_code)[0]} ${Math.round(d.current.temperature_2m)}°`; }).catch(() => { });
+APPS.weather = { n: 'Počasí', i: '🌤️', bg: 'linear-gradient(135deg,#4facfe,#00c6fb)', w: 360, h: 420, open(b) {
+  b.innerHTML = '<div class="wx"><p>Načítám… ⏳</p></div>';
+  loadWx().then(d => {
+    const [ic, tx] = WMO(d.current.weather_code), dn = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
+    b.innerHTML = `<div class="wx"><div style="font-size:20px;font-weight:600">Ostrava</div><div class="big">${Math.round(d.current.temperature_2m)}°</div><div style="font-size:40px">${ic}</div><div>${tx} · pocitově ${Math.round(d.current.apparent_temperature)}° · vítr ${Math.round(d.current.wind_speed_10m)} km/h</div>
+    <div class="days">${d.daily.time.map((t, i) => `<div><div>${i ? dn[new Date(t).getDay()] : 'Dnes'}</div><div style="font-size:26px">${WMO(d.daily.weather_code[i])[0]}</div><div><b>${Math.round(d.daily.temperature_2m_max[i])}°</b> ${Math.round(d.daily.temperature_2m_min[i])}°</div></div>`).join('')}</div></div>`;
+  }).catch(() => b.innerHTML = '<div class="wx"><p>Počasí se nenačetlo 😕</p></div>');
+} };
+
+/* ---- Kalkulačka ---- */
+APPS.calc = { n: 'Kalkulačka', i: '🧮', bg: 'linear-gradient(135deg,#ffb347,#ff9f0a)', w: 300, h: 460, open(b) {
+  const keys = [['C', 'f'], ['±', 'f'], ['%', 'f'], ['÷', 'o'], ['7'], ['8'], ['9'], ['×', 'o'], ['4'], ['5'], ['6'], ['−', 'o'], ['1'], ['2'], ['3'], ['+', 'o'], ['0', 'z'], [','], ['=', 'o']];
+  b.innerHTML = `<div class="calc"><div class="scr">0</div>${keys.map(([k, c]) => `<button class="${c || ''}">${k}</button>`).join('')}</div>`;
+  const scr = b.querySelector('.scr'); let cur = '0', acc = null, op = null, fresh = false;
+  const show = () => scr.textContent = cur.replace('.', ',');
+  const calc = (a, b, o) => o === '+' ? a + b : o === '−' ? a - b : o === '×' ? a * b : o === '÷' ? (b === 0 ? NaN : a / b) : b;
+  b.querySelector('.calc').onclick = e => {
+    const k = e.target.tagName === 'BUTTON' ? e.target.textContent : null; if (!k) return;
+    if (/\d/.test(k)) { cur = (fresh || cur === '0') ? k : cur + k; fresh = false; }
+    else if (k === ',') { if (fresh) { cur = '0'; fresh = false; } if (!cur.includes('.')) cur += '.'; }
+    else if (k === 'C') { cur = '0'; acc = null; op = null; }
+    else if (k === '±') cur = String(-parseFloat(cur));
+    else if (k === '%') cur = String(parseFloat(cur) / 100);
+    else if (k === '=') { if (op) { cur = String(+calc(acc, parseFloat(cur), op).toPrecision(12)); op = null; acc = null; fresh = true; } }
+    else { if (op && !fresh) cur = String(+calc(acc, parseFloat(cur), op).toPrecision(12)); acc = parseFloat(cur); op = k; fresh = true; }
+    if (cur === 'NaN') cur = 'Chyba 🙃'; show(); if (cur.startsWith('Chyba')) cur = '0';
+  };
+} };
+
+/* ---- Lidi ---- */
+function renderPeople() {
+  const b = wins.people?.body.querySelector('.ppl'); if (!b) return;
+  b.innerHTML = Object.entries(users).map(([id, u]) => `<div><span style="font-size:26px">${esc(u.emoji)}</span><b style="color:${esc(u.color)}">${esc(u.name)}${id === uid ? ' (ty)' : ''}</b><span style="margin-left:auto;font-size:12px;color:var(--muted)">${u.app ? 'v appce ' + esc((APPS[u.app] || {}).n || '') : 'na ploše'}</span></div>`).join('');
+}
+APPS.people = { n: 'Lidi', i: '👥', bg: 'linear-gradient(135deg,#a18cd1,#7b5cff)', w: 360, h: 400, open(b) {
+  b.innerHTML = `<div class="pad"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>Na ploše ${esc(room)}</b><button class="btn" id="pInv">🔗 Pozvat</button></div><div class="ppl"></div></div>`;
+  b.querySelector('#pInv').onclick = invite; renderPeople();
+} };
+
+/* ---- Nastavení ---- */
+APPS.settings = { n: 'Nastavení', i: '⚙️', bg: 'linear-gradient(135deg,#bbb,#777)', w: 420, h: 520, open(b) {
+  const paint = () => {
+    b.innerHTML = `<div class="pad"><b>🖼️ Tapeta</b><div class="walls">${WALLS.map((w, i) => `<button data-w="${i}" class="${i === me.wall ? 'on' : ''}" style="background:${w}"></button>`).join('')}</div>
+    <b>🎨 Barva</b><div style="display:flex;gap:8px;margin:8px 0 14px">${COLORS.map(c => `<button data-c="${c}" style="width:30px;height:30px;border-radius:50%;border:${c === me.color ? '3px solid var(--txt)' : 'none'};background:${c}"></button>`).join('')}</div>
+    <div class="srow"><span>🌙 Tmavý režim</span><input type="checkbox" id="sD" ${me.dark ? 'checked' : ''}></div>
+    <div class="srow"><span>😀 Ikonka</span><span>${EMOJIS.map(e => `<span data-e="${e}" style="cursor:pointer;font-size:20px;opacity:${e === me.emoji ? 1 : .45}">${e}</span>`).join('')}</span></div>
+    <div class="srow"><span>✏️ Jméno</span><input id="sN" value="${esc(me.name)}" maxlength="16" style="border:1px solid var(--line);border-radius:8px;padding:6px;background:transparent;width:140px"></div>
+    <p style="font-size:12px;color:var(--muted)">WolfOS 1.0 🐺 · vyrobeno pro Wolfa</p></div>`;
+  };
+  paint();
+  b.onclick = e => {
+    const t = e.target; let ch = false;
+    if (t.dataset.w) { me.wall = +t.dataset.w; ch = true; }
+    if (t.dataset.c) { me.color = t.dataset.c; ch = true; }
+    if (t.dataset.e) { me.emoji = t.dataset.e; ch = true; }
+    if (ch) { saveMe(); applyLook(); update(R(`users/${uid}`), { color: me.color, emoji: me.emoji }); paint(); }
+  };
+  b.onchange = e => {
+    if (e.target.id === 'sD') { me.dark = e.target.checked; saveMe(); applyLook(); }
+    if (e.target.id === 'sN' && e.target.value.trim()) { me.name = e.target.value.trim().slice(0, 16); saveMe(); update(R(`users/${uid}`), { name: me.name }); }
+  };
+} };
+
+addEventListener('resize', renderCursors);
+</script>
+</body>
+</html>
