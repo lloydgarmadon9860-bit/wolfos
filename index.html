@@ -124,7 +124,32 @@ button{cursor:pointer}
 .srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .ppl{display:flex;flex-direction:column;gap:6px}
 .ppl div{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:rgba(127,127,127,.1)}
-@media (max-width:700px){.dk{width:44px;height:44px;font-size:24px}.dk:hover{transform:none;margin:0}#menubar .hm{display:none}}
+/* desktop icons */
+#icons{position:absolute;top:10px;right:10px;display:grid;grid-auto-flow:column;grid-template-rows:repeat(auto-fill,92px);gap:4px;height:calc(100% - 110px);direction:rtl;z-index:1}
+.dico{direction:ltr;width:84px;height:88px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;border-radius:8px;cursor:default;border:2px solid transparent}
+.dico .ii{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+.dico span{font-size:12px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);text-align:center;line-height:1.15;padding:1px 4px;border-radius:4px}
+.dico.sel{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35)}
+.dico.sel span{background:var(--acc);text-shadow:none}
+/* context menu */
+#ctx{position:fixed;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:10px;padding:5px;z-index:70;min-width:210px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:14px}
+#ctx div{padding:6px 10px;border-radius:6px;cursor:default}
+#ctx div:hover{background:var(--acc);color:#fff}
+#ctx hr{border:none;border-top:1px solid var(--line);margin:4px 0}
+/* spotlight */
+#spot{position:fixed;inset:0;z-index:80;display:flex;justify-content:center;align-items:flex-start;padding-top:16vh;background:rgba(0,0,0,.12)}
+#spot .sbx{width:min(600px,94vw);background:var(--glass);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:hidden;animation:pop .15s ease-out}
+#spot .sin{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:22px}
+#spot input{flex:1;border:none;background:none;outline:none;font-size:22px}
+#spot .sres{max-height:50vh;overflow:auto;border-top:1px solid var(--line)}
+#spot .sres:empty{display:none}
+#spot .sr{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:15px}
+#spot .sr .ii{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+#spot .sr small{margin-left:auto;color:var(--muted);font-size:12px}
+#spot .sr.on{background:var(--acc);color:#fff}
+#spot .sr.on small{color:rgba(255,255,255,.8)}
+@media (max-width:700px){#icons{top:6px;right:4px;grid-template-rows:repeat(auto-fill,84px)}.dico{width:72px;height:82px}.dico .ii{width:48px;height:48px;font-size:26px}#spot{padding-top:8vh}
+.dk{width:44px;height:44px;font-size:24px}.dk:hover{transform:none;margin:0}#menubar .hm{display:none}}
 </style>
 </head>
 <body>
@@ -148,6 +173,7 @@ button{cursor:pointer}
  <b id="mApp">Finder</b>
  <span class="mchip hm" id="mOpen">Appky</span>
  <span class="sp"></span>
+ <span class="mchip" id="mSpot" title="Spotlight (Ctrl+mezerník)">🔍</span>
  <span class="mchip" id="mRoom">👥</span>
  <span class="mchip hm" id="mWx"></span>
  <span id="mClock"></span>
@@ -160,7 +186,9 @@ button{cursor:pointer}
  <div data-m="tidy">🪟 Zavřít všechna okna</div>
  <div data-m="logout">🚪 Odhlásit se</div>
 </div>
-<div id="desk"></div>
+<div id="desk"><div id="icons" class="hidden"></div></div>
+<div id="ctx" class="hidden"></div>
+<div id="spot" class="hidden"><div class="sbx"><div class="sin">🔍<input id="spIn" placeholder="Hledat ve WolfOS…" autocomplete="off" spellcheck="false"></div><div class="sres" id="spRes"></div></div></div>
 <div id="dock" class="hidden"></div>
 <div id="curs"></div>
 <div id="notifs"></div>
@@ -246,7 +274,7 @@ function enterRoom(code) {
   onDisconnect(meRef).remove();
   unsub.push(onValue(R('users'), s => { users = s.val() || {}; renderPeople(); renderCursors(); }));
   sysMsg(`${me.emoji} ${me.name} se připojil/a 👋`);
-  buildDock();
+  buildDock(); buildIcons();
   notify('🐺', 'Vítej ve WolfOS!', `Plocha ${code} – pošli kód kámošům.`);
   openApp(isMobile() ? 'chat' : 'welcome');
   startChatListener();
@@ -384,7 +412,7 @@ APPS.welcome = { n: 'Vítej', i: '🐺', bg: '#ddd', w: 440, h: 380, open(b) {
   b.innerHTML = `<div class="pad" style="text-align:center"><div style="font-size:64px">${esc(me.emoji)}</div><h2 style="margin:4px 0">Ahoj ${esc(me.name)}! 👋</h2>
   <p style="color:var(--muted)">Jsi na ploše <b>${esc(room)}</b>. Všichni s tímhle kódem vidí tvůj kurzor, chat, piškvorky, nálepky i piano. 🎉</p>
   <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px"><button class="btn" id="wInv">🔗 Pozvat kámoše</button><button class="btn g" id="wChat">💬 Chat</button><button class="btn g" id="wTtt">❌ Piškvorky</button></div>
-  <p style="font-size:12px;color:var(--muted);margin-top:18px">Okna chytni za horní lištu, roztáhni za pravý dolní roh. 🟢 = celá obrazovka.</p></div>`;
+  <p style="font-size:12px;color:var(--muted);margin-top:18px">Okna chytni za horní lištu, roztáhni za pravý dolní roh. 🟢 = celá obrazovka. 🖱️ Pravé tlačítko na ploše = menu. 🔍 Ctrl+mezerník = Spotlight.</p></div>`;
   b.querySelector('#wInv').onclick = invite; b.querySelector('#wChat').onclick = () => openApp('chat'); b.querySelector('#wTtt').onclick = () => openApp('ttt');
 } };
 APPS.launch = { n: 'Appky', i: '🚀', bg: '#ddd', w: 460, h: 360, open(b) {
@@ -544,7 +572,7 @@ APPS.term = { n: 'Terminál', i: '⌨️', bg: 'linear-gradient(135deg,#333,#000
     open: a => { const k = Object.keys(APPS).find(k => k === a || APPS[k].n.toLowerCase() === (a || '').toLowerCase()); if (!k) return 'Appky: ' + Object.keys(APPS).join(', '); openApp(k); return 'Otevírám ' + APPS[k].n; },
     roll: () => '🎲 ' + (1 + Math.floor(Math.random() * 6)),
     flip: () => Math.random() < .5 ? '🪙 Panna' : '🪙 Orel',
-    neofetch: () => `   /\\_/\\     ${me.name}@wolfos\n  ( o.o )    OS: WolfOS 1.0 🐺\n   > ^ <     Plocha: ${room}\n             Lidi online: ${Object.keys(users).length}\n             Okna: ${Object.keys(wins).length}\n             Shell: wolfsh`,
+    neofetch: () => `   /\\_/\\     ${me.name}@wolfos\n  ( o.o )    OS: WolfOS 1.1 🐺\n   > ^ <     Plocha: ${room}\n             Lidi online: ${Object.keys(users).length}\n             Okna: ${Object.keys(wins).length}\n             Shell: wolfsh`,
     matrix: () => { let n = 0; const iv = setInterval(() => { say(Array.from({ length: 40 }, () => Math.random() < .5 ? String.fromCharCode(0x30A0 + Math.random() * 96) : ' ').join('')); if (++n > 25) clearInterval(iv); }, 60); return ''; },
     color: () => { me.color = COLORS[(COLORS.indexOf(me.color) + 1) % COLORS.length]; saveMe(); applyLook(); update(R(`users/${uid}`), { color: me.color }); return '🎨 nová barva ' + me.color; },
     wall: () => { me.wall = (me.wall + 1) % WALLS.length; saveMe(); applyLook(); return '🖼️ tapeta ' + (me.wall + 1); },
@@ -616,7 +644,7 @@ APPS.settings = { n: 'Nastavení', i: '⚙️', bg: 'linear-gradient(135deg,#bbb
     <div class="srow"><span>🌙 Tmavý režim</span><input type="checkbox" id="sD" ${me.dark ? 'checked' : ''}></div>
     <div class="srow"><span>😀 Ikonka</span><span>${EMOJIS.map(e => `<span data-e="${e}" style="cursor:pointer;font-size:20px;opacity:${e === me.emoji ? 1 : .45}">${e}</span>`).join('')}</span></div>
     <div class="srow"><span>✏️ Jméno</span><input id="sN" value="${esc(me.name)}" maxlength="16" style="border:1px solid var(--line);border-radius:8px;padding:6px;background:transparent;width:140px"></div>
-    <p style="font-size:12px;color:var(--muted)">WolfOS 1.0 🐺 · vyrobeno pro Wolfa</p></div>`;
+    <p style="font-size:12px;color:var(--muted)">WolfOS 1.1 🐺 · vyrobeno pro Wolfa</p></div>`;
   };
   paint();
   b.onclick = e => {
@@ -631,6 +659,102 @@ APPS.settings = { n: 'Nastavení', i: '⚙️', bg: 'linear-gradient(135deg,#bbb
     if (e.target.id === 'sN' && e.target.value.trim()) { me.name = e.target.value.trim().slice(0, 16); saveMe(); update(R(`users/${uid}`), { name: me.name }); }
   };
 } };
+
+/* ================= ikony na ploše + pravé tlačítko ================= */
+const ICONS = ['flex', 'chat', 'ttt', 'art', 'notes', 'piano', 'term', 'weather'];
+function buildIcons() {
+  const box = $('#icons'); box.classList.remove('hidden');
+  box.innerHTML = ICONS.map(k => `<div class="dico" data-a="${k}"><div class="ii" style="background:${APPS[k].bg}">${APPS[k].i}</div><span>${APPS[k].n}</span></div>`).join('');
+  box.addEventListener('pointerup', e => {
+    const d = e.target.closest('.dico'); if (!d) return;
+    box.querySelectorAll('.dico').forEach(x => x.classList.toggle('sel', x === d));
+    if (e.pointerType !== 'mouse') openApp(d.dataset.a);
+  });
+  box.addEventListener('dblclick', e => { const d = e.target.closest('.dico'); if (d) openApp(d.dataset.a); });
+}
+function nextWall() { me.wall = (me.wall + 1) % WALLS.length; saveMe(); applyLook(); notify('🖼️', 'Nová tapeta', `Tapeta ${me.wall + 1} z ${WALLS.length} ✨`); }
+function newSticker() {
+  push(R('notes'), { x: 20 + Math.random() * 200, y: 20 + Math.random() * 120, c: STK[Math.floor(Math.random() * STK.length)], t: '', by: me.emoji + ' ' + me.name });
+  openApp('notes'); notify('📝', 'Nová nálepka', 'Napiš na ni něco 🙂');
+}
+const CTX = [
+  ['📝 Nová nálepka', newSticker],
+  ['🖼️ Změnit tapetu', nextWall],
+  ['🌙 Tmavý / světlý režim', () => { me.dark = !me.dark; saveMe(); applyLook(); }],
+  null,
+  ['🔍 Spotlight…', () => openSpot()],
+  ['🚀 Všechny appky', () => openApp('launch')],
+  ['🔗 Pozvat kámoše', () => invite()],
+  null,
+  ['⚙️ Nastavení plochy…', () => openApp('settings')],
+];
+function showCtx(x, y) {
+  const m = $('#ctx');
+  m.innerHTML = CTX.map((c, i) => c ? `<div data-i="${i}">${c[0]}</div>` : '<hr>').join('');
+  m.classList.remove('hidden');
+  m.style.left = Math.min(x, innerWidth - m.offsetWidth - 6) + 'px'; m.style.top = Math.min(y, innerHeight - m.offsetHeight - 6) + 'px';
+}
+const hideCtx = () => $('#ctx').classList.add('hidden');
+$('#ctx').onclick = e => { const i = e.target.dataset.i; if (i === undefined) return; hideCtx(); CTX[+i][1](); };
+const onDesk = t => room && t.closest && t.closest('#desk') && !t.closest('.win');
+document.addEventListener('contextmenu', e => { if (!onDesk(e.target)) return; e.preventDefault(); showCtx(e.clientX, e.clientY); });
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest('#ctx')) hideCtx();
+  if (onDesk(e.target) && !e.target.closest('.dico')) $('#icons').querySelectorAll('.dico').forEach(x => x.classList.remove('sel'));
+});
+// dlouhé podržení na mobilu = pravé tlačítko
+let lpT = null;
+document.addEventListener('touchstart', e => {
+  if (!onDesk(e.target) || e.touches.length > 1) return; const t = e.touches[0];
+  clearTimeout(lpT); lpT = setTimeout(() => showCtx(t.clientX, t.clientY), 550);
+}, { passive: true });
+['touchend', 'touchmove', 'touchcancel'].forEach(ev => document.addEventListener(ev, () => clearTimeout(lpT), { passive: true }));
+
+/* ================= Spotlight ================= */
+const KW = { flex: 'bubliny sit kamosi', chat: 'zpravy psat povidat', ttt: 'piskvorky hra tictactoe', piano: 'klavir hudba noty', notes: 'nalepky poznamky papirky', art: 'kresleni malovani artparty', term: 'terminal prikazy konzole', weather: 'pocasi teplota ostrava', calc: 'kalkulacka pocitani matika', people: 'lidi online kamosi', settings: 'nastaveni tapeta barva', welcome: 'vitej napoveda', launch: 'appky launchpad vsechno' };
+const ACTIONS = [
+  { i: '📝', n: 'Nová nálepka', k: 'nalepka nova', f: newSticker },
+  { i: '🖼️', n: 'Změnit tapetu', k: 'tapeta pozadi', f: nextWall },
+  { i: '🌙', n: 'Tmavý režim', k: 'tmavy svetly rezim dark', f: () => { me.dark = !me.dark; saveMe(); applyLook(); } },
+  { i: '🔗', n: 'Pozvat kámoše', k: 'pozvat odkaz sdilet', f: () => invite() },
+  { i: '🪟', n: 'Zavřít všechna okna', k: 'zavrit okna', f: () => Object.keys(wins).forEach(closeWin) },
+];
+const fold = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+let spSel = 0, spList = [];
+function spSearch() {
+  const q = fold($('#spIn').value.trim());
+  const apps = Object.keys(APPS).map(k => ({ i: APPS[k].i, n: APPS[k].n, bg: APPS[k].bg, k: k + ' ' + (KW[k] || ''), t: 'Appka', f: () => openApp(k) }));
+  const acts = ACTIONS.map(a => ({ ...a, t: 'Akce' }));
+  let res = [...apps, ...acts];
+  if (q) res = res.map(r => { const n = fold(r.n), k = fold(r.k); const sc = n.startsWith(q) ? 3 : n.includes(q) ? 2 : k.includes(q) ? 1 : 0; return { ...r, sc }; }).filter(r => r.sc).sort((a, b) => b.sc - a.sc);
+  else res = apps.filter(r => ICONS.some(k => APPS[k].n === r.n));
+  const qRaw = $('#spIn').value.trim();
+  if (/^[\d\s+\-*/().,×÷]+$/.test(qRaw) && /\d/.test(qRaw) && /[+\-*/×÷]/.test(qRaw)) {
+    try { const v = Function('"use strict";return (' + qRaw.replace(/,/g, '.').replace(/×/g, '*').replace(/÷/g, '/') + ')')(); if (isFinite(v)) res.unshift({ i: '🧮', n: `= ${String(+v.toPrecision(12)).replace('.', ',')}`, t: 'Výpočet', f: () => openApp('calc') }); } catch (e) { }
+  }
+  if (qRaw && !res.length) res.push({ i: '💬', n: `Poslat do chatu: „${qRaw}“`, t: 'Chat', f: () => { sendChat(qRaw); openApp('chat'); } });
+  spList = res.slice(0, 8); spSel = 0; spPaint();
+}
+function spPaint() {
+  $('#spRes').innerHTML = spList.map((r, i) => `<div class="sr${i === spSel ? ' on' : ''}" data-i="${i}"><div class="ii" style="background:${r.bg || 'rgba(127,127,127,.18)'}">${r.i}</div>${esc(r.n)}<small>${r.t}</small></div>`).join('');
+}
+function openSpot() { if (!room) return; hideCtx(); $('#spot').classList.remove('hidden'); $('#spIn').value = ''; spSearch(); setTimeout(() => $('#spIn').focus(), 30); }
+function closeSpot() { $('#spot').classList.add('hidden'); $('#spIn').blur(); }
+function spGo(i) { const r = spList[i]; if (!r) return; closeSpot(); r.f(); }
+$('#spIn').oninput = spSearch;
+$('#spIn').onkeydown = e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); spSel = Math.min(spList.length - 1, spSel + 1); spPaint(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); spSel = Math.max(0, spSel - 1); spPaint(); }
+  else if (e.key === 'Enter') { e.preventDefault(); spGo(spSel); }
+  else if (e.key === 'Escape') closeSpot();
+};
+$('#spRes').onclick = e => { const d = e.target.closest('.sr'); if (d) spGo(+d.dataset.i); };
+$('#spot').onclick = e => { if (e.target.id === 'spot') closeSpot(); };
+$('#mSpot').onclick = e => { e.stopPropagation(); openSpot(); };
+addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && (e.code === 'Space' || e.key === ' ' || e.key.toLowerCase() === 'k')) { e.preventDefault(); $('#spot').classList.contains('hidden') ? openSpot() : closeSpot(); }
+  else if (e.key === 'Escape') { closeSpot(); hideCtx(); }
+});
 
 addEventListener('resize', renderCursors);
 </script>
