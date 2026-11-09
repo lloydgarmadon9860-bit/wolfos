@@ -344,7 +344,7 @@ function invite() {
 /* ================= okna ================= */
 const wins = {}; let zTop = 10, badges = {};
 function buildDock() {
-  const order = ['flex', 'chat', 'ttt', 'rps', 'piano', 'notes', 'art', 'term', 'weather', 'calc', 'people', 'settings'];
+  const order = ['flex', 'chat', 'ttt', 'rps', 'wb', 'piano', 'notes', 'art', 'term', 'weather', 'calc', 'people', 'settings'];
   $('#dock').innerHTML = `<button class="dk" data-a="launch" style="background:linear-gradient(135deg,#eee,#bbb)">🐺<span class="tip">Appky</span></button><span class="sep"></span>` +
     order.map(k => `<button class="dk" data-a="${k}" style="background:${APPS[k].bg}">${APPS[k].i}<span class="tip">${APPS[k].n}</span></button>`).join('');
   $('#dock').onclick = e => { const b = e.target.closest('.dk'); if (b) openApp(b.dataset.a); };
@@ -416,7 +416,7 @@ APPS.welcome = { n: 'Vítej', i: '🐺', bg: '#ddd', w: 440, h: 380, open(b) {
   b.querySelector('#wInv').onclick = invite; b.querySelector('#wChat').onclick = () => openApp('chat'); b.querySelector('#wTtt').onclick = () => openApp('ttt');
 } };
 APPS.launch = { n: 'Appky', i: '🚀', bg: '#ddd', w: 460, h: 360, open(b) {
-  const list = ['flex', 'chat', 'ttt', 'rps', 'piano', 'notes', 'art', 'term', 'weather', 'calc', 'people', 'settings', 'welcome'];
+  const list = ['flex', 'chat', 'ttt', 'rps', 'wb', 'piano', 'notes', 'art', 'term', 'weather', 'calc', 'people', 'settings', 'welcome'];
   b.innerHTML = `<div class="pad" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:14px;text-align:center">${list.map(k => `<div data-a="${k}" style="cursor:pointer"><div style="width:62px;height:62px;margin:0 auto;border-radius:16px;background:${APPS[k].bg};display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 3px 8px rgba(0,0,0,.2)">${APPS[k].i}</div><div style="font-size:12px;margin-top:5px">${APPS[k].n}</div></div>`).join('')}</div>`;
   b.onclick = e => { const d = e.target.closest('[data-a]'); if (d) { openApp(d.dataset.a); closeWin('launch'); } };
 } };
@@ -518,6 +518,23 @@ APPS.rps = { n: 'Kámen-nůžky-papír', i: '✂️', bg: 'linear-gradient(135de
   }).then(r => { if (!r.committed) notify('⏳', 'Nejde to', 'Už jsi vybral/a, nebo jsou obě místa obsazená') }));
 } };
 
+APPS.wb = { n: 'Whiteboard', i: '🧑‍🏫', bg: 'linear-gradient(135deg,#6be3ff,#2f80ff)', w: 520, h: 480, open(b, w) {
+  b.innerHTML = `<div class="pad" style="display:flex;flex-direction:column;height:100%;box-sizing:border-box;gap:6px"><div style="display:flex;gap:6px;align-items:center"><input type="color" id="wC" value="${me.color}"><input type="range" id="wS" min="2" max="24" value="5"><button class="btn g" id="wE">🧽 Guma</button><button class="btn g" id="wX">🗑️ Smazat</button></div><canvas id="wV" width="800" height="600" style="flex:1;min-height:0;width:100%;background:#fff;border-radius:10px;touch-action:none;cursor:crosshair"></canvas></div>`;
+  const cv = b.querySelector('#wV'), cx = cv.getContext('2d'); let er = false, down = null, buf = [];
+  const seg = (a, c, col, sz) => { cx.strokeStyle = col; cx.lineWidth = sz; cx.lineCap = 'round'; cx.beginPath(); cx.moveTo(a[0] * 800, a[1] * 600); cx.lineTo(c[0] * 800, c[1] * 600); cx.stroke(); };
+  const pt = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+  const flush = () => { if (buf.length) { push(R('wb/s'), { u: uid, c: b.querySelector('#wC').value, z: +b.querySelector('#wS').value * (er ? 3 : 1), e: er ? 1 : 0, p: buf.map(q => q.map(v => Math.round(v * 1000) / 1000)).join(';') }); buf = []; } };
+  const col = () => er ? '#fff' : b.querySelector('#wC').value, sz = () => +b.querySelector('#wS').value * (er ? 3 : 1);
+  cv.onpointerdown = e => { e.preventDefault(); cv.setPointerCapture(e.pointerId); down = pt(e); buf = [down]; };
+  cv.onpointermove = e => { if (!down) return; const q = pt(e); seg(down, q, col(), sz()); down = q; buf.push(q); if (buf.length > 40) { const l = q; flush(); buf = [l]; } };
+  cv.onpointerup = cv.onpointercancel = () => { down = null; flush(); buf = []; };
+  b.querySelector('#wE').onclick = ev => { er = !er; ev.target.textContent = er ? '✏️ Tužka' : '🧽 Guma'; };
+  b.querySelector('#wX').onclick = () => remove(R('wb'));
+  const drawS = v => { if (v.u === uid) return; const pts = String(v.p).split(';').map(x => x.split(',').map(Number)); for (let i = 1; i < pts.length; i++) seg(pts[i - 1], pts[i], v.e ? '#fff' : v.c, v.z); };
+  w.cleanup.push(onChildAdded(R('wb/s'), s => drawS(s.val())));
+  w.cleanup.push(onValue(R('wb'), s => { if (!s.exists()) cx.clearRect(0, 0, 800, 600); }));
+} };
+
 /* ---- Piano ---- */
 const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'H'];
 const KEYS = 'awsedftgzhujkolpřů';
@@ -599,7 +616,7 @@ APPS.term = { n: 'Terminál', i: '⌨️', bg: 'linear-gradient(135deg,#333,#000
     open: a => { const k = Object.keys(APPS).find(k => k === a || APPS[k].n.toLowerCase() === (a || '').toLowerCase()); if (!k) return 'Appky: ' + Object.keys(APPS).join(', '); openApp(k); return 'Otevírám ' + APPS[k].n; },
     roll: () => '🎲 ' + (1 + Math.floor(Math.random() * 6)),
     flip: () => Math.random() < .5 ? '🪙 Panna' : '🪙 Orel',
-    neofetch: () => `   /\\_/\\     ${me.name}@wolfos\n  ( o.o )    OS: WolfOS 1.2 🐺\n   > ^ <     Plocha: ${room}\n             Lidi online: ${Object.keys(users).length}\n             Okna: ${Object.keys(wins).length}\n             Shell: wolfsh`,
+    neofetch: () => `   /\\_/\\     ${me.name}@wolfos\n  ( o.o )    OS: WolfOS 1.3 🐺\n   > ^ <     Plocha: ${room}\n             Lidi online: ${Object.keys(users).length}\n             Okna: ${Object.keys(wins).length}\n             Shell: wolfsh`,
     matrix: () => { let n = 0; const iv = setInterval(() => { say(Array.from({ length: 40 }, () => Math.random() < .5 ? String.fromCharCode(0x30A0 + Math.random() * 96) : ' ').join('')); if (++n > 25) clearInterval(iv); }, 60); return ''; },
     color: () => { me.color = COLORS[(COLORS.indexOf(me.color) + 1) % COLORS.length]; saveMe(); applyLook(); update(R(`users/${uid}`), { color: me.color }); return '🎨 nová barva ' + me.color; },
     wall: () => { me.wall = (me.wall + 1) % WALLS.length; saveMe(); applyLook(); return '🖼️ tapeta ' + (me.wall + 1); },
@@ -671,7 +688,7 @@ APPS.settings = { n: 'Nastavení', i: '⚙️', bg: 'linear-gradient(135deg,#bbb
     <div class="srow"><span>🌙 Tmavý režim</span><input type="checkbox" id="sD" ${me.dark ? 'checked' : ''}></div>
     <div class="srow"><span>😀 Ikonka</span><span>${EMOJIS.map(e => `<span data-e="${e}" style="cursor:pointer;font-size:20px;opacity:${e === me.emoji ? 1 : .45}">${e}</span>`).join('')}</span></div>
     <div class="srow"><span>✏️ Jméno</span><input id="sN" value="${esc(me.name)}" maxlength="16" style="border:1px solid var(--line);border-radius:8px;padding:6px;background:transparent;width:140px"></div>
-    <p style="font-size:12px;color:var(--muted)">WolfOS 1.2 🐺 · vyrobeno pro Wolfa</p></div>`;
+    <p style="font-size:12px;color:var(--muted)">WolfOS 1.3 🐺 · vyrobeno pro Wolfa</p></div>`;
   };
   paint();
   b.onclick = e => {
@@ -688,7 +705,7 @@ APPS.settings = { n: 'Nastavení', i: '⚙️', bg: 'linear-gradient(135deg,#bbb
 } };
 
 /* ================= ikony na ploše + pravé tlačítko ================= */
-const ICONS = ['flex', 'chat', 'ttt', 'rps', 'art', 'notes', 'piano', 'term', 'weather'];
+const ICONS = ['flex', 'chat', 'ttt', 'rps', 'wb', 'art', 'notes', 'piano', 'term', 'weather'];
 function buildIcons() {
   const box = $('#icons'); box.classList.remove('hidden');
   box.innerHTML = ICONS.map(k => `<div class="dico" data-a="${k}"><div class="ii" style="background:${APPS[k].bg}">${APPS[k].i}</div><span>${APPS[k].n}</span></div>`).join('');
@@ -738,7 +755,7 @@ document.addEventListener('touchstart', e => {
 ['touchend', 'touchmove', 'touchcancel'].forEach(ev => document.addEventListener(ev, () => clearTimeout(lpT), { passive: true }));
 
 /* ================= Spotlight ================= */
-const KW = { flex: 'bubliny sit kamosi', chat: 'zpravy psat povidat', ttt: 'piskvorky hra tictactoe', rps: 'kamen nuzky papir hra souboj', piano: 'klavir hudba noty', notes: 'nalepky poznamky papirky', art: 'kresleni malovani artparty', term: 'terminal prikazy konzole', weather: 'pocasi teplota ostrava', calc: 'kalkulacka pocitani matika', people: 'lidi online kamosi', settings: 'nastaveni tapeta barva', welcome: 'vitej napoveda', launch: 'appky launchpad vsechno' };
+const KW = { flex: 'bubliny sit kamosi', chat: 'zpravy psat povidat', ttt: 'piskvorky hra tictactoe', wb: 'tabule whiteboard kresleni sdilena', rps: 'kamen nuzky papir hra souboj', piano: 'klavir hudba noty', notes: 'nalepky poznamky papirky', art: 'kresleni malovani artparty', term: 'terminal prikazy konzole', weather: 'pocasi teplota ostrava', calc: 'kalkulacka pocitani matika', people: 'lidi online kamosi', settings: 'nastaveni tapeta barva', welcome: 'vitej napoveda', launch: 'appky launchpad vsechno' };
 const ACTIONS = [
   { i: '📝', n: 'Nová nálepka', k: 'nalepka nova', f: newSticker },
   { i: '🖼️', n: 'Změnit tapetu', k: 'tapeta pozadi', f: nextWall },
